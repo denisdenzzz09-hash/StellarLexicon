@@ -5,6 +5,9 @@ public class SceneHandler : MonoBehaviour
 {
     public void StartGame()
     {
-        SceneManager.LoadScene("LEVEL_1");
+        if (GameManager.Instance != null)
+            GameManager.Instance.LoadLevel(1);
+        else
+            SceneManager.LoadScene("LEVEL_1");
     }
 }

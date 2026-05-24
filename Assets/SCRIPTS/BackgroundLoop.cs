@@ -19,6 +19,6 @@ public class BackgroundLoop : MonoBehaviour
 
         // Kalau sudah lewat kiri layar, loncat ke kanan sejauh 2x lebar sprite
         if (transform.position.x <= -spriteWidth)
-            transform.position = new Vector3(spriteWidth, transform.position.y, transform.position.z);
+            transform.position = new Vector3(spriteWidth - 2, transform.position.y, transform.position.z);
     }
 }

@@ -7,10 +7,8 @@ public class WaveSpawner : MonoBehaviour
     public static WaveSpawner Instance;
 
     [Header("Prefab")]
-    public GameObject enemyPrefab; // Prefab alien dengan EnemyAI attached
-
-    [Header("Bos")]
-    public GameObject bossPrefab; // Prefab bos, assign di Inspector
+    public GameObject enemyPrefab;
+    public GameObject bossPrefab;
 
     [Header("Data Soal per Level")]
     public QuestionData[] level1Questions;
@@ -18,14 +16,14 @@ public class WaveSpawner : MonoBehaviour
     public QuestionData[] level3Questions;
 
     [Header("Pengaturan Wave")]
-    public int totalWaves = 4;         // Jumlah wave per level
-    public float timeBetweenWaves = 3f; // Jeda antar wave (detik)
-    public float timeBetweenSpawns = 1.5f; // Jeda antar alien dalam satu wave
+    public int totalWaves = 4;
+    public float timeBetweenWaves = 3f;
+    public float timeBetweenSpawns = 1.5f;
 
     [Header("Spawn Position")]
-    public float spawnX = 11f;          // Posisi X spawn (kanan layar)
-    public float spawnYMin = -3f;       // Batas bawah posisi Y spawn
-    public float spawnYMax = 3f;        // Batas atas posisi Y spawn
+    public float spawnX = 11f;
+    public float spawnYMin = -3f;
+    public float spawnYMax = 3f;
 
     // Internal
     private int currentWave = 0;
@@ -44,7 +42,9 @@ public class WaveSpawner : MonoBehaviour
     {
         currentLevel = GameManager.Instance.GetCurrentLevel();
         LoadQuestionsForLevel(currentLevel);
-        StartCoroutine(StartNextWave());
+
+        if (!GameManager.Instance.GetNextSceneIsLoad())
+            StartCoroutine(StartNextWave());
     }
 
     void LoadQuestionsForLevel(int level)
@@ -59,7 +59,9 @@ public class WaveSpawner : MonoBehaviour
             _ => level1Questions
         };
 
-        availableQuestions.AddRange(source);
+        if (source != null)
+            availableQuestions.AddRange(source);
+
         ShuffleQuestions();
     }
 
@@ -77,7 +79,6 @@ public class WaveSpawner : MonoBehaviour
     {
         if (currentWave >= totalWaves)
         {
-            // Semua wave beres → spawn bos
             yield return new WaitForSeconds(timeBetweenWaves);
             SpawnBoss();
             yield break;
@@ -109,27 +110,23 @@ public class WaveSpawner : MonoBehaviour
     void SpawnEnemy()
     {
         if (availableQuestions.Count == 0)
-            LoadQuestionsForLevel(currentLevel); // reload kalau habis
+            LoadQuestionsForLevel(currentLevel);
 
-        // Ambil soal random
         int randIndex = Random.Range(0, availableQuestions.Count);
         QuestionData question = availableQuestions[randIndex];
         availableQuestions.RemoveAt(randIndex);
 
-        // Posisi spawn
         float spawnY = Random.Range(spawnYMin, spawnYMax);
         Vector3 spawnPos = new Vector3(spawnX, spawnY, 0);
 
         GameObject enemyObj = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
         EnemyAI enemy = enemyObj.GetComponent<EnemyAI>();
 
-        // Setup enemy
         enemy.questionData = question;
-        enemy.levelIndex = currentLevel;
-        enemy.moveSpeed = GetSpeedForLevel(currentLevel);
+        enemy.levelIndex   = currentLevel;
+        enemy.moveSpeed    = GetSpeedForLevel(currentLevel);
     }
 
-    // Dipanggil EnemyAI saat alien mati atau lolos
     public void OnEnemyDefeated()
     {
         enemiesAlive--;
@@ -142,9 +139,9 @@ public class WaveSpawner : MonoBehaviour
     {
         return level switch
         {
-            1 => Random.Range(3, 6),   // 3-5 alien
-            2 => Random.Range(5, 9),   // 5-8 alien
-            3 => Random.Range(8, 13),  // 8-12 alien
+            1 => Random.Range(3, 6),
+            2 => Random.Range(5, 9),
+            3 => Random.Range(8, 10),
             _ => 3
         };
     }
@@ -153,15 +150,12 @@ public class WaveSpawner : MonoBehaviour
     {
         return level switch
         {
-            1 => 2f,
-            2 => 3.5f,
-            3 => 5f,
-            _ => 2f
+            1 => 1.5f,
+            2 => 2f,
+            3 => 2f,
+            _ => 1.5f
         };
     }
-
-    public int GetCurrentWave() => currentWave;
-    public int GetTotalWaves() => totalWaves;
 
     void SpawnBoss()
     {
@@ -179,8 +173,8 @@ public class WaveSpawner : MonoBehaviour
         BossEnemy boss = bossObj.GetComponent<BossEnemy>();
 
         boss.questionData = question;
-        boss.levelIndex = currentLevel;
-        boss.moveSpeed = GetSpeedForLevel(currentLevel);
+        boss.levelIndex   = currentLevel;
+        boss.moveSpeed    = GetSpeedForLevel(currentLevel);
     }
 
     public void OnBossDefeated()
@@ -203,5 +197,25 @@ public class WaveSpawner : MonoBehaviour
     {
         currentWave = wave;
         GameUI.Instance?.UpdateWaveText(currentWave, totalWaves);
+    }
+
+    public void SetLevel(int level)
+    {
+        currentLevel = level;
+        LoadQuestionsForLevel(currentLevel);
+    }
+
+    public void SetEnemiesAlive(int count)
+    {
+        enemiesAlive = count;
+    }
+
+    public int GetCurrentWave() => currentWave;
+    public int GetTotalWaves()  => totalWaves;
+
+    public IEnumerator ResumeFromLoad()
+    {
+        yield return new WaitForSeconds(1f);
+        StartCoroutine(StartNextWave());
     }
 }

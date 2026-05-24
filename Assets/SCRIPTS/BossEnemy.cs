@@ -8,7 +8,7 @@ public class BossEnemy : MonoBehaviour
 
     [Header("Tampilan")]
     public TextMeshPro questionText;
-    public TextMeshPro hpText; // opsional, buat nampilin HP bos
+    public TextMeshPro hpText;
 
     [Header("Stat Bos - atur di Inspector")]
     public int bossHP = 3;
@@ -26,15 +26,22 @@ public class BossEnemy : MonoBehaviour
             questionText.text = questionData.englishSentence;
 
         UpdateHPDisplay();
-
-        PlayerShip player = FindFirstObjectByType<PlayerShip>();
-        if (player != null)
-            playerTransform = player.transform;
     }
 
     void Update()
     {
         if (isDead) return;
+
+        // Kalau player belum ketemu, coba cari lagi tiap frame
+        if (playerTransform == null)
+        {
+            PlayerShip player = FindFirstObjectByType<PlayerShip>();
+            if (player != null)
+                playerTransform = player.transform;
+            else
+                return;
+        }
+
         MoveTowardPlayer();
         CheckReachedPlayer();
     }
@@ -57,7 +64,6 @@ public class BossEnemy : MonoBehaviour
         float dist = Vector3.Distance(transform.position, playerTransform.position);
         if (dist < 0.8f)
         {
-            // Kena bos = player langsung mati
             GameManager.Instance.TriggerInstantDeath();
             Destroy(gameObject);
         }
@@ -67,21 +73,21 @@ public class BossEnemy : MonoBehaviour
     {
         if (isDead) return;
 
-        bossHP--;
+        int scoreToAdd = firstAttempt ? 100 : 50;
         firstAttempt = false;
+
+        bossHP--;
         UpdateHPDisplay();
 
-        // Kasih skor tiap hit
-        GameManager.Instance.AddScore(firstAttempt ? 100 : 50);
+        GameManager.Instance.AddScore(scoreToAdd);
         GameManager.Instance.AddCombo();
 
-        // Ganti soal baru setelah kena
         RefreshQuestion();
 
         if (bossHP <= 0)
         {
             isDead = true;
-            GameManager.Instance.AddScore(300); // bonus kill bos
+            GameManager.Instance.AddScore(300);
             WaveSpawner.Instance.OnBossDefeated();
             Destroy(gameObject);
         }

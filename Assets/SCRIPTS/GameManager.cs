@@ -15,11 +15,12 @@ public class GameManager : MonoBehaviour
     private bool isPaused = false;
     private bool gameOver = false;
     private bool isLevelComplete = false;
+    private bool nextSceneIsLoad = false;
 
-    const string KEY_LEVEL = "CurrentLevel";
-    const string KEY_HS_1 = "HighScore_Level1";
-    const string KEY_HS_2 = "HighScore_Level2";
-    const string KEY_HS_3 = "HighScore_Level3";
+    const string KEY_LEVEL    = "CurrentLevel";
+    const string KEY_HS_1     = "HighScore_Level1";
+    const string KEY_HS_2     = "HighScore_Level2";
+    const string KEY_HS_3     = "HighScore_Level3";
     const string KEY_UNLOCKED = "UnlockedLevel";
 
     void Awake()
@@ -34,7 +35,6 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        currentLevel = PlayerPrefs.GetInt(KEY_LEVEL, 1);
         ResetSession();
     }
 
@@ -44,7 +44,7 @@ public class GameManager : MonoBehaviour
         currentScore = 0;
         comboCount = 0;
         gameOver = false;
-        isLevelComplete = false; // ← tambah ini
+        isLevelComplete = false;
         GameUI.Instance?.UpdateHP(currentHP, maxHP);
         GameUI.Instance?.UpdateScore(currentScore);
     }
@@ -113,8 +113,8 @@ public class GameManager : MonoBehaviour
         if (currentLevel + 1 > unlockedLevel)
             PlayerPrefs.SetInt(KEY_UNLOCKED, currentLevel + 1);
 
-        Time.timeScale = 0f;              // freeze game
-        GameUI.Instance?.ShowYouWin();    // munculkan panel You Win
+        Time.timeScale = 0f;
+        GameUI.Instance?.ShowYouWin();
     }
 
     public void TriggerLevelComplete()
@@ -131,7 +131,7 @@ public class GameManager : MonoBehaviour
         return 1;
     }
 
-    // ===================== SAVE SYSTEM =====================
+    // ===================== HIGH SCORE =====================
 
     void SaveHighScore()
     {
@@ -160,6 +160,7 @@ public class GameManager : MonoBehaviour
             _ => 0
         };
     }
+
     public int GetUnlockedLevel() => PlayerPrefs.GetInt(KEY_UNLOCKED, 1);
 
     public void SetHP(int hp)
@@ -174,22 +175,22 @@ public class GameManager : MonoBehaviour
         GameUI.Instance?.UpdateScore(currentScore);
     }
 
+    // ===================== SAVE GAME =====================
 
-       // ===================== SAVE SYSTEM =====================
     public void SaveGame()
     {
-        EnemyAI[] enemies = FindObjectsByType<EnemyAI>(FindObjectsSortMode.None);
         GameSaveData data = new GameSaveData
         {
-            scene   = GetCurrentLevel(),
-            health  = GetCurrentHP(),
-            score   = GetCurrentScore(),
-            wave    = WaveSpawner.Instance.GetCurrentWave(),
+            scene      = GetCurrentLevel(),
+            health     = GetCurrentHP(),
+            score      = GetCurrentScore(),
+            wave       = WaveSpawner.Instance.GetCurrentWave(),
             isLevelWon = IsLevelComplete(),
-            bg1PosX = GameObject.Find("Background1")?.transform.position.x ?? 0f,
-            bg2PosX = GameObject.Find("Background2")?.transform.position.x ?? 0f
+            bg1PosX    = GameObject.Find("Background1")?.transform.position.x ?? 0f,
+            bg2PosX    = GameObject.Find("Background2")?.transform.position.x ?? 0f
         };
 
+        EnemyAI[] enemies = FindObjectsByType<EnemyAI>(FindObjectsSortMode.None);
         foreach (EnemyAI e in enemies)
         {
             data.enemies.Add(new EnemySaveData
@@ -203,6 +204,19 @@ public class GameManager : MonoBehaviour
             });
         }
 
+        // FIX: simpan data boss jika ada
+        BossEnemy boss = FindFirstObjectByType<BossEnemy>();
+        if (boss != null)
+        {
+            data.hasBoss          = true;
+            data.bossPosX         = boss.transform.position.x;
+            data.bossPosY         = boss.transform.position.y;
+            data.bossQuestionName = boss.GetQuestionData().name;
+            data.bossMoveSpeed    = boss.moveSpeed;
+            data.bossLevelIndex   = boss.levelIndex;
+            data.bossHP           = boss.bossHP;
+        }
+
         SaveSystem.Save(data);
     }
 
@@ -211,6 +225,8 @@ public class GameManager : MonoBehaviour
     public void LoadLevel(int level)
     {
         currentLevel = level;
+        PlayerPrefs.SetInt(KEY_LEVEL, level);
+        PlayerPrefs.Save();
         Time.timeScale = 1f;
         ResetSession();
         SceneManager.LoadScene("LEVEL_" + level);
@@ -218,6 +234,9 @@ public class GameManager : MonoBehaviour
 
     public void LoadMainMenu()
     {
+        currentLevel = 1;
+        PlayerPrefs.SetInt(KEY_LEVEL, 1);
+        PlayerPrefs.Save();
         Time.timeScale = 1f;
         ResetSession();
         SceneManager.LoadScene("MainMenu");
@@ -233,7 +252,6 @@ public class GameManager : MonoBehaviour
     public void LoadNextLevel()
     {
         int next = currentLevel + 1;
-        Debug.Log("currentLevel: " + currentLevel + ", next: " + next); // ← tambah ini
         if (next <= 3) LoadLevel(next);
         else LoadMainMenu();
     }
@@ -246,12 +264,27 @@ public class GameManager : MonoBehaviour
         if (isLevelComplete) return;
         isPaused = !isPaused;
         Time.timeScale = isPaused ? 0f : 1f;
-        Debug.Log("TogglePause dipanggil, isPaused: " + isPaused + ", timeScale: " + Time.timeScale);
     }
 
-    public bool IsGamePaused() => isPaused;
-    public int GetCurrentLevel() => currentLevel;
-    public int GetCurrentScore() => currentScore;
-    public int GetCurrentHP() => currentHP;
+    // ===================== LOAD FLAG =====================
+
+    public void SetNextSceneIsLoad(bool value)
+    {
+        nextSceneIsLoad = value;
+    }
+
+    public bool GetNextSceneIsLoad()
+    {
+        bool val = nextSceneIsLoad;
+        nextSceneIsLoad = false; // auto reset setelah dibaca
+        return val;
+    }
+
+    // ===================== GETTERS =====================
+
+    public bool IsGamePaused()    => isPaused;
+    public int GetCurrentLevel()  => currentLevel;
+    public int GetCurrentScore()  => currentScore;
+    public int GetCurrentHP()     => currentHP;
     public bool IsLevelComplete() => isLevelComplete;
 }

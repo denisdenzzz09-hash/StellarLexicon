@@ -47,7 +47,7 @@ public class PlayerShip : MonoBehaviour
         Vector3 direction = currentTarget.position - transform.position;
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
 
-        Quaternion targetRotation = Quaternion.Euler(0, 0, angle - 90f);
+        Quaternion targetRotation = Quaternion.Euler(0, 0, angle + 90f);
         transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
     }
 

@@ -7,7 +7,7 @@ public class EnemySaveData
 {
     public float posX;
     public float posY;
-    public string questionName; // nama file QuestionData
+    public string questionName;
     public float moveSpeed;
     public int levelIndex;
     public bool firstAttempt;
@@ -24,6 +24,14 @@ public class GameSaveData
     public float bg2PosX;
     public bool isLevelWon;
     public List<EnemySaveData> enemies = new List<EnemySaveData>();
+    // FIX: tambah data boss
+    public bool hasBoss;
+    public float bossPosX;
+    public float bossPosY;
+    public string bossQuestionName;
+    public float bossMoveSpeed;
+    public int bossLevelIndex;
+    public int bossHP;
 }
 
 public static class SaveSystem

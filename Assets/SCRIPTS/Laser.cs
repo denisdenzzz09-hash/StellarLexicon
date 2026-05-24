@@ -38,7 +38,7 @@ public class Laser : MonoBehaviour
 
         // Rotate laser menghadap arah geraknya
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        transform.rotation = Quaternion.Euler(0, 0, angle);
+        transform.rotation = Quaternion.Euler(0, 0, angle - 45f);
 
         // Cek apakah sudah sampai ke target
         float dist = Vector3.Distance(transform.position, targetTransform.position);
